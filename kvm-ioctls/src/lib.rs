@@ -25,6 +25,7 @@
 //! - x86_64
 //! - arm64 (experimental)
 //! - riscv64 (experimental)
+//! - ppc64le (experimental)
 //!
 //! **NOTE:** The list of available ioctls is not extensive.
 //!
@@ -35,6 +36,7 @@
 //! the [LWN article](https://lwn.net/Articles/658511/) on using the KVM API.
 //! The aarch64 example was modified accordingly.
 //! The riscv64 example was modified accordingly.
+//! The ppc64le example was modified accordingly.
 //!
 //! To get code running on the vCPU we are going through the following steps:
 //!
@@ -101,6 +103,17 @@
 //!         0xa3, 0x23, 0x73, 0x00, // sw t2, t1 + 7;   dirty current page
 //!         0x23, 0x20, 0x75, 0x00, // sw t2, a0;       trigger MMIO exit
 //!         0x6f, 0x00, 0x00, 0x00, // j .;shouldn't get here, but if so loop forever
+//!     ];
+//! }
+//! #[cfg(target_arch = "powerpc64")]
+//! {
+//!     // Note: PowerPC assembly example - instruction encoding should be verified
+//!     // against PowerPC ISA and tested on actual hardware or QEMU.
+//!     asm_code = &[
+//!         0x38, 0x20, 0x00, 0x00, // li r1, 0;        load immediate 0 into r1
+//!         0x91, 0x41, 0x00, 0x00, // stw r10, 0(r1);  store to address 0 (dirty page)
+//!         0x91, 0x4a, 0x00, 0x00, // stw r10, 0(r10); trigger MMIO write
+//!         0x48, 0x00, 0x00, 0x00, // b .;             branch to self (loop forever)
 //!     ];
 //! }
 //!
@@ -186,6 +199,18 @@
 //!     vcpu_fd.set_one_reg(core_reg_base + 10, &mmio_addr.to_le_bytes());
 //! }
 //!
+//! #[cfg(target_arch = "powerpc64")]
+//! {
+//!     // ppc64le specific register setup.
+//!     let mmio_addr: u64 = guest_addr + mem_size as u64;
+//!     let mut vcpu_regs = vcpu_fd.get_regs().unwrap();
+//!     // Set PC (program counter)
+//!     vcpu_regs.pc = guest_addr;
+//!     // Set GPR10 (general purpose register 10) to MMIO address
+//!     vcpu_regs.gpr[10] = mmio_addr;
+//!     vcpu_fd.set_regs(&vcpu_regs).unwrap();
+//! }
+//!
 //! // 6. Run code on the vCPU.
 //! loop {
 //!     match vcpu_fd.run().expect("run failed") {
@@ -213,10 +238,10 @@
 //!                 .map(|page| page.count_ones())
 //!                 .fold(0, |dirty_page_count, i| dirty_page_count + i);
 //!             assert_eq!(dirty_pages, 1);
-//!             // Since on aarch64 there is not halt instruction,
+//!             // Since on aarch64, riscv64, and ppc64le there is no halt instruction,
 //!             // we break immediately after the last known instruction
 //!             // of the asm code example so that we avoid an infinite loop.
-//!             #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
+//!             #[cfg(any(target_arch = "aarch64", target_arch = "riscv64", target_arch = "powerpc64"))]
 //!             break;
 //!         }
 //!         VcpuExit::Hlt => {

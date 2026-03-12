@@ -17,6 +17,6 @@ as the code documentation.
 
 ## Supported Platforms
 
-The kvm-ioctls can be used on x86_64, aarch64 and riscv64 (experimental).
+The kvm-ioctls can be used on x86_64, aarch64, riscv64 (experimental), and ppc64le (experimental).
 
 

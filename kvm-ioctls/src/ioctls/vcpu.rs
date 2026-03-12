@@ -367,7 +367,7 @@ impl VcpuFd {
     /// let vcpu = vm.create_vcpu(0).unwrap();
     /// let sregs = vcpu.get_sregs().unwrap();
     /// ```
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "powerpc64"))]
     pub fn get_sregs(&self) -> Result<kvm_sregs> {
         let mut regs = kvm_sregs::default();
         // SAFETY: Safe because we know that our file is a vCPU fd, we know the kernel will only
@@ -400,7 +400,7 @@ impl VcpuFd {
     /// sregs.cs.selector = 0;
     /// vcpu.set_sregs(&sregs).unwrap();
     /// ```
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "powerpc64"))]
     pub fn set_sregs(&self, sregs: &kvm_sregs) -> Result<()> {
         // SAFETY: Safe because we know that our file is a vCPU fd, we know the kernel will only
         // read the correct amount of memory from our pointer, and we verify the return result.
